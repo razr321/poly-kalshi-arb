@@ -286,14 +286,31 @@ def fetch_polymarket(max_pages=10):
                 prices = json.loads(m.get('outcomePrices', '[]'))
                 if not q or len(prices) < 2:
                     continue
+                # Build the correct Polymarket URL
+                # Markets can be standalone or nested under an event
+                market_slug = m.get('slug', '')
+                event_slug = ''
+                events_data = m.get('events', [])
+                if events_data and isinstance(events_data, list) and len(events_data) > 0:
+                    event_slug = events_data[0].get('slug', '')
+                if not event_slug:
+                    event_slug = m.get('eventSlug', '')
+
+                # Construct URL: /event/{event_slug}/{market_slug} or /event/{market_slug}
+                if event_slug and event_slug != market_slug:
+                    poly_url = f'https://polymarket.com/event/{event_slug}/{market_slug}'
+                else:
+                    poly_url = f'https://polymarket.com/event/{market_slug}'
+
                 results.append({
                     'question': q,
                     'yes_price': float(prices[0]),
                     'no_price': float(prices[1]),
                     'volume_24h': float(m.get('volume24hr', 0) or 0),
                     'liquidity': float(m.get('liquidityNum', 0) or 0),
-                    'slug': m.get('slug', ''),
-                    'event_slug': m.get('eventSlug', m.get('slug', '')),
+                    'slug': market_slug,
+                    'event_slug': event_slug or market_slug,
+                    'poly_url': poly_url,
                     'fees_enabled': bool(m.get('feesEnabled', False)),
                     'end_date': m.get('endDate', '') or '',
                     'token_yes': '',
@@ -503,6 +520,7 @@ def _compute_arb(pm, km):
                 'irr': irr, 'expiry': expiry_str, 'days': exp_days,
                 'poly_slug': pm['event_slug'],
                 'poly_market_slug': pm['slug'],
+                'poly_url': pm.get('poly_url', ''),
                 'poly_token': pm['token_yes'],
                 'kalshi_ticker': km['ticker'],
                 'poly_price': py, 'kalshi_price': kna,
@@ -528,6 +546,7 @@ def _compute_arb(pm, km):
                 'irr': irr, 'expiry': expiry_str, 'days': exp_days,
                 'poly_slug': pm['event_slug'],
                 'poly_market_slug': pm['slug'],
+                'poly_url': pm.get('poly_url', ''),
                 'poly_token': pm['token_no'],
                 'kalshi_ticker': km['ticker'],
                 'poly_price': pn, 'kalshi_price': kya,

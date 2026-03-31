@@ -238,8 +238,8 @@ for arb in arbs:
     stake_kalshi = arb["kalshi_price"] * units
     payout = units  # $1 per unit
 
-    poly_url = f'https://polymarket.com/event/{arb["poly_slug"]}'
-    if arb.get("poly_token"):
+    poly_url = arb.get('poly_url', f'https://polymarket.com/event/{arb["poly_slug"]}')
+    if arb.get("poly_token") and '?tid=' not in poly_url:
         poly_url += f'?tid={arb["poly_token"]}'
     kalshi_url = f'https://kalshi.com/markets/{arb["kalshi_ticker"]}'
 
